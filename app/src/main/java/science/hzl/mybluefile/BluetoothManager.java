@@ -19,6 +19,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.UUID;
 import android.os.Handler;
+import android.view.Gravity;
+import android.widget.Toast;
 
 /**
  * Created by YLion on 2015/5/6.
@@ -65,8 +67,8 @@ public class BluetoothManager {
 						//start to listen
 						transferSocket = serverSocket;
 
-						listenForMessages(serverSocket,incoming);
-						//getBlueToothFile(serverSocket);
+						//listenForMessages(serverSocket,incoming);
+						getBlueToothFile(serverSocket);
 					}catch (IOException e){
 						e.printStackTrace();
 					}
@@ -83,20 +85,26 @@ public class BluetoothManager {
 		try {
 			InputStream inputStream = socket.getInputStream();
 			File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/12345.jpg");
-			FileOutputStream fos = new FileOutputStream(file,true);
-			byte[] buffer = new byte[1024];
+			FileOutputStream fos = new FileOutputStream(file);
+			byte[] buffer = new byte[102400];
 			int len;
-			//如果len不等于-1，说明没有读到文件末尾，循环将输入流中的内容写入输出流
-			while((len=inputStream.read(buffer))!=-1){
-				//将buffer中的内容写入输出流
-				fos.write(buffer, 0, len);
-			}
+			inputStream.read(buffer);
+			fos.write(buffer);
+//			//如果len不等于-1，说明没有读到文件末尾，循环将输入流中的内容写入输出流
+//			while((len=inputStream.read(buffer))!=-1){
+//				//将buffer中的内容写入输出流
+//				fos.write(buffer, 0, len);
+//			}
 			//flush把缓冲区中的数据强行输出
 			fos.flush();
 			//关闭流
 			fos.close();
+			Toast toastTell;
+			toastTell=Toast.makeText(App.getContext(), "success", Toast.LENGTH_SHORT);
+			toastTell.setGravity(Gravity.TOP, 0, 600);
+			toastTell.show();
 			inputStream.close();
-			Log.e("x","sendOut");
+
 		}catch (IOException e){
 			e.printStackTrace();
 		}
@@ -114,7 +122,8 @@ public class BluetoothManager {
 			Log.e("file",Environment.getExternalStorageDirectory().getAbsolutePath() );
 			InputStream filesIn = new FileInputStream(f);
 			//定义一个buffer
-			byte[] buffer = new byte[1024];
+			//byte[] buffer = new byte[1024];
+			byte[] buffer = new byte[(int)f.length()];
 			int len=1024;
 
 			int fileLength=(int)(f.length()/1024);
@@ -125,18 +134,18 @@ public class BluetoothManager {
 			if(time==0){
 
 				//如果len不等于-1，说明没有读到文件末尾，循环将输入流中的内容写入输出流
-				do{
+				//do{
 					Log.e("write" , "write" );
-					len=filesIn.read(buffer,0,len);
-
+				//	len=filesIn.read(buffer,0,len);
+					filesIn.read();
 					outputStream.write(buffer);
 					time++;
 
-					message.what = (time*100/fileLength);
-					handler.sendMessage(message);
-				}while(len!=-1);
+				//	message.what = (time*100/fileLength);
+				//	handler.sendMessage(message);
+				//}while(len!=-1);
 
-			}else{      
+			}else{
 
 				for(int i=1;i<=time;i++){
 					filesIn.read(buffer,0,1024);
@@ -156,6 +165,7 @@ public class BluetoothManager {
 
 			outputStream.flush();
 			outputStream.close();
+			Log.e("success","success");
 			filesIn.close();
 
 		}catch (IOException e){

@@ -63,32 +63,32 @@ public class MainActivity extends ActionBarActivity {
 
 					}
 				};
-
-				Thread acceptTread = new Thread(new Runnable() {
-					@Override
-					public void run() {
-						try {
-
-
-							//还要改哦
-							SharedPreferences sharedPreferences= getSharedPreferences("1123455",ActionBarActivity.MODE_PRIVATE);
-
-							int fileTimes =sharedPreferences.getInt("fileTimes",0);
-
-							fileTimes=bluetoothManager.SendBlueToothFile(fileTimes,myHandler);
-
-							SharedPreferences.Editor editor = sharedPreferences.edit();
-							editor.putInt("fileTimes", fileTimes);
-							editor.apply();
-
-						}catch (Exception e){
-							e.printStackTrace();
-						}
-					}
-				});
-
-
-				acceptTread.start();
+				bluetoothManager.SendBlueToothFile(0,myHandler);
+//				Thread acceptTread = new Thread(new Runnable() {
+//					@Override
+//					public void run() {
+//						try {
+//
+//
+//							//还要改哦
+//							SharedPreferences sharedPreferences= getSharedPreferences("1123455",ActionBarActivity.MODE_PRIVATE);
+//
+//							int fileTimes =sharedPreferences.getInt("fileTimes",0);
+//
+//							fileTimes=bluetoothManager.SendBlueToothFile(0,myHandler);
+//
+//							SharedPreferences.Editor editor = sharedPreferences.edit();
+//							editor.putInt("fileTimes", fileTimes);
+//							editor.apply();
+//
+//						}catch (Exception e){
+//							e.printStackTrace();
+//						}
+//					}
+//				});
+//
+//
+//				acceptTread.start();
 
 
 			}
@@ -97,14 +97,14 @@ public class MainActivity extends ActionBarActivity {
 
 	}
 
-	@Override
-	protected void onDestroy() {
-		super.onDestroy();
-		try {
-			bluetoothManager.getTransferSocket().close();
-		}catch (IOException e){
-			e.printStackTrace();
-		}
-
-	}
+//	@Override
+//	protected void onDestroy() {
+//		super.onDestroy();
+//		try {
+//			bluetoothManager.getTransferSocket().close();
+//		}catch (IOException e){
+//			e.printStackTrace();
+//		}
+//
+//	}
 }
