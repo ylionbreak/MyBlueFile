@@ -4,7 +4,10 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
+import android.content.SharedPreferences;
 import android.os.Environment;
+import android.os.Message;
+import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 
 import java.io.BufferedInputStream;
@@ -15,6 +18,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.UUID;
+import android.os.Handler;
 
 /**
  * Created by YLion on 2015/5/6.
@@ -79,20 +83,14 @@ public class BluetoothManager {
 		try {
 			InputStream inputStream = socket.getInputStream();
 			File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/12345.jpg");
-			FileOutputStream fos = new FileOutputStream(file);
-//			byte[] buffer = new byte[1024];
-//			int len=0;
-//			//如果len不等于-1，说明没有读到文件末尾，循环将输入流中的内容写入输出流
-//			while((len=inputStream.read(buffer))!=-1){
-//				//将buffer中的内容写入输出流
-//				fos.write(buffer, 0, len);
-//			}
-
-
+			FileOutputStream fos = new FileOutputStream(file,true);
 			byte[] buffer = new byte[1024];
-			inputStream.read(buffer);
-			fos.write(buffer);
-
+			int len;
+			//如果len不等于-1，说明没有读到文件末尾，循环将输入流中的内容写入输出流
+			while((len=inputStream.read(buffer))!=-1){
+				//将buffer中的内容写入输出流
+				fos.write(buffer, 0, len);
+			}
 			//flush把缓冲区中的数据强行输出
 			fos.flush();
 			//关闭流
@@ -105,37 +103,65 @@ public class BluetoothManager {
 
 	}
 
-	void SendBlueToothFile(BluetoothSocket socket){
+	int SendBlueToothFile(int time,Handler handler){
 		OutputStream outputStream;
 		try {
+			Log.e("time", String.valueOf(time) );
 			//创建输出流
-			outputStream = socket.getOutputStream();
+			outputStream = transferSocket.getOutputStream();
 			//获取文件
 			File f = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/12345.jpg");
-
-
+			Log.e("file",Environment.getExternalStorageDirectory().getAbsolutePath() );
 			InputStream filesIn = new FileInputStream(f);
 			//定义一个buffer
-			byte[] buffer = new byte[(int)f.length()];
-			//读取数据长度
-//			int len=0;
-//			//如果len不等于-1，说明没有读到文件末尾，循环将输入流中的内容写入输出流
-//			while((len=filesIn.read(buffer))!=-1){
-			filesIn.read(buffer);
-//				filesIn.read(buffer,0,len);
-			//将buffer中的内容写入输出流
-			outputStream.write(buffer);
-//			}
+			byte[] buffer = new byte[1024];
+			int len=1024;
 
-			//flush把缓冲区中的数据强行输出
-//			outputStream.flush();
-			//关闭流
+			int fileLength=(int)(f.length()/1024);
+
+			Message message = new Message();
+
+
+			if(time==0){
+
+				//如果len不等于-1，说明没有读到文件末尾，循环将输入流中的内容写入输出流
+				do{
+					Log.e("write" , "write" );
+					len=filesIn.read(buffer,0,len);
+
+					outputStream.write(buffer);
+					time++;
+
+					message.what = (time*100/fileLength);
+					handler.sendMessage(message);
+				}while(len!=-1);
+
+			}else{
+
+				for(int i=1;i<=time;i++){
+					filesIn.read(buffer,0,1024);
+				}
+				do{
+					len=filesIn.read(buffer,0,len);
+
+					outputStream.write(buffer);
+					time++;
+
+					message.what = (time/fileLength)*100;
+					handler.sendMessage(message);
+				}while(len!=-1);
+
+
+			}
+
+			outputStream.flush();
 			outputStream.close();
 			filesIn.close();
 
 		}catch (IOException e){
 			e.printStackTrace();
 		}
+		return time;
 	}
 
 	private void sendMessage(BluetoothSocket socket,String message){
@@ -185,5 +211,7 @@ public class BluetoothManager {
 		}
 	}
 
-
+	public BluetoothSocket getTransferSocket() {
+		return transferSocket;
+	}
 }
