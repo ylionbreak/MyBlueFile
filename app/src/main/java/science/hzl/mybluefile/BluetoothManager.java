@@ -136,7 +136,7 @@ public class BluetoothManager {
 					handler.sendMessage(message);
 				}while(len!=-1);
 
-			}else{
+			}else{      
 
 				for(int i=1;i<=time;i++){
 					filesIn.read(buffer,0,1024);
