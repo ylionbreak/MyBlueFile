@@ -97,6 +97,8 @@ public class BluetoothManager {
 //			}
 			//flush把缓冲区中的数据强行输出
 			fos.flush();
+			
+			
 			//关闭流
 			fos.close();
 			Toast toastTell;
