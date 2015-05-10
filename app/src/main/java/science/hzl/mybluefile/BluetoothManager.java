@@ -26,10 +26,13 @@ import android.widget.Toast;
  * Created by YLion on 2015/5/6.
  */
 public class BluetoothManager {
+	private static final String SEND = "SEND:";
+	//private static final String
 	BluetoothSocket transferSocket;
 	StringBuilder incoming=new StringBuilder();
 	Boolean listening=false;
-	String opp;
+	String returnMessage="";
+	String filename="12345.jpg";
 
 	BluetoothManager(){
 
@@ -40,9 +43,7 @@ public class BluetoothManager {
 			UUID uuid =UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 			BluetoothSocket bluetoothSocket = device.createInsecureRfcommSocketToServiceRecord(uuid);
 			bluetoothSocket.connect();
-
 			transferSocket=bluetoothSocket;
-
 			Log.e("x", String.valueOf(bluetoothSocket.isConnected()));
 		}catch (IOException e){
 			e.printStackTrace();
@@ -66,7 +67,7 @@ public class BluetoothManager {
 						BluetoothSocket serverSocket =btserver.accept();
 						//start to listen
 						transferSocket = serverSocket;
-
+						listenForMessages(transferSocket);
 						//listenForMessages(serverSocket,incoming);
 						getBlueToothFile(serverSocket);
 					}catch (IOException e){
@@ -83,26 +84,22 @@ public class BluetoothManager {
 
 	void getBlueToothFile(BluetoothSocket socket){
 		try {
+			//接受文件长度
+			listenForMessages(transferSocket);
+			int file
 			InputStream inputStream = socket.getInputStream();
+
 			File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/12345.jpg");
-			FileOutputStream fos = new FileOutputStream(file);
+			FileOutputStream fos = new FileOutputStream(file,true);
 			byte[] buffer = new byte[102400];
 			int len;
+
 			inputStream.read(buffer);
 			fos.write(buffer);
-//			//如果len不等于-1，说明没有读到文件末尾，循环将输入流中的内容写入输出流
-//			while((len=inputStream.read(buffer))!=-1){
-//				//将buffer中的内容写入输出流
-//				fos.write(buffer, 0, len);
-//			}
+
 			//flush把缓冲区中的数据强行输出
 			fos.flush();
-			//关闭流
 			fos.close();
-			Toast toastTell;
-			toastTell=Toast.makeText(App.getContext(), "success", Toast.LENGTH_SHORT);
-			toastTell.setGravity(Gravity.TOP, 0, 600);
-			toastTell.show();
 			inputStream.close();
 
 		}catch (IOException e){
@@ -114,60 +111,32 @@ public class BluetoothManager {
 	int SendBlueToothFile(int time,Handler handler){
 		OutputStream outputStream;
 		try {
-			Log.e("time", String.valueOf(time) );
+			listening=true;
+			//handler
+			Message message = new Message();
 			//创建输出流
 			outputStream = transferSocket.getOutputStream();
 			//获取文件
 			File f = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/12345.jpg");
 			Log.e("file",Environment.getExternalStorageDirectory().getAbsolutePath() );
+			//发送长度
+			sendMessage("SEND"+String.valueOf(f.length()));
+			listenForMessages(transferSocket);
+			//等待消息
+			while(returnMessage.equalsIgnoreCase(""));
+			//接收到了消息开始分开发送文件
+			listening=false;
 			InputStream filesIn = new FileInputStream(f);
-			//定义一个buffer
-			//byte[] buffer = new byte[1024];
 			byte[] buffer = new byte[(int)f.length()];
-			int len=1024;
-
-			int fileLength=(int)(f.length()/1024);
-
-			Message message = new Message();
-
-
-			if(time==0){
-
-				//如果len不等于-1，说明没有读到文件末尾，循环将输入流中的内容写入输出流
-				//do{
-					Log.e("write" , "write" );
-				//	len=filesIn.read(buffer,0,len);
-					filesIn.read();
-					outputStream.write(buffer);
-					time++;
-
-				//	message.what = (time*100/fileLength);
-				//	handler.sendMessage(message);
-				//}while(len!=-1);
-
+			filesIn.read(buffer);
+			if(returnMessage.equalsIgnoreCase("FIRST")) {
+				outputStream.write(buffer);
 			}else{
-
-				for(int i=1;i<=time;i++){
-					filesIn.read(buffer,0,1024);
-				}
-				do{
-					len=filesIn.read(buffer,0,len);
-
-					outputStream.write(buffer);
-					time++;
-
-					message.what = (time/fileLength)*100;
-					handler.sendMessage(message);
-				}while(len!=-1);
-
-
+				outputStream.write(buffer,Integer.valueOf(returnMessage),(int)f.length()-Integer.valueOf(returnMessage));
 			}
-
 			outputStream.flush();
 			outputStream.close();
-			Log.e("success","success");
 			filesIn.close();
-
 		}catch (IOException e){
 			e.printStackTrace();
 		}
@@ -188,6 +157,50 @@ public class BluetoothManager {
 		}
 	}
 
+	private void sendMessage(String message){
+		OutputStream outputStream;
+		try {
+			outputStream = transferSocket.getOutputStream();
+			byte[] bytes = (message+" ").getBytes();
+			bytes[bytes.length-1]=0;
+			outputStream.write(bytes);
+		}catch (IOException e){
+			e.printStackTrace();
+		}
+	}
+
+	private void listenForMessages(BluetoothSocket socket){
+		listening = true;
+
+		int bufferSize =1024;
+		byte[] buffer = new byte[bufferSize];
+		try {
+			InputStream inputStream = socket.getInputStream();
+			int bytesRead = -1;
+
+			while (listening){
+
+				bytesRead = inputStream.read(buffer);
+
+				String result = "";
+				if(bytesRead != -1){
+
+					while(bytesRead == bufferSize && buffer[bufferSize-1] != 0){
+						result = result + new String(buffer,0,bytesRead);
+						bytesRead = inputStream.read(buffer);
+					}
+					result = result + new String(buffer,0,bytesRead);
+				}
+				returnMessage=result;
+
+
+			}
+			//socket.close();
+		}catch (IOException e){
+			e.printStackTrace();
+		}
+	}
+
 	private void listenForMessages(BluetoothSocket socket,StringBuilder incoming){
 		listening = true;
 
@@ -198,6 +211,7 @@ public class BluetoothManager {
 			int bytesRead = -1;
 
 			while (listening){
+
 				bytesRead = inputStream.read(buffer);
 
 				String result = "";
@@ -211,8 +225,8 @@ public class BluetoothManager {
 
 					incoming.append(result);
 				}
-				opp=result;
-				Log.e("x","xxxx");
+				returnMessage=result;
+
 
 			}
 			//socket.close();
@@ -225,3 +239,9 @@ public class BluetoothManager {
 		return transferSocket;
 	}
 }
+
+
+//发送文件名与长度
+//接受有无传输过与长度
+//NO无 从0开始
+//YES有 从接受位置开始

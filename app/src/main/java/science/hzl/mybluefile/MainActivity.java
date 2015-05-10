@@ -108,3 +108,11 @@ public class MainActivity extends ActionBarActivity {
 //
 //	}
 }
+
+
+
+
+//Toast toastTell;
+//			toastTell=Toast.makeText(App.getContext(), "success", Toast.LENGTH_SHORT);
+//toastTell.setGravity(Gravity.TOP, 0, 600);
+//		toastTell.show();
