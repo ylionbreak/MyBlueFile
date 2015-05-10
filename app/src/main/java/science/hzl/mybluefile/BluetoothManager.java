@@ -4,6 +4,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
+import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Environment;
 import android.os.Message;
@@ -52,7 +53,7 @@ public class BluetoothManager {
 		}
 	}
 
-	public UUID startServerSocket  (BluetoothAdapter bluetoothAdapter){
+	public UUID startServerSocket  (BluetoothAdapter bluetoothAdapter, final SharedPreferences sharedPreferences){
 		UUID uuid =UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 		String name = "bluetoothServer";
 
@@ -67,9 +68,9 @@ public class BluetoothManager {
 						BluetoothSocket serverSocket =btserver.accept();
 						//start to listen
 						transferSocket = serverSocket;
-						listenForMessages(transferSocket);
+						//listenForMessages(transferSocket);
 						//listenForMessages(serverSocket,incoming);
-						getBlueToothFile(serverSocket);
+						getBlueToothFile(serverSocket, sharedPreferences);
 					}catch (IOException e){
 						e.printStackTrace();
 					}
@@ -82,29 +83,38 @@ public class BluetoothManager {
 		return uuid;
 	}
 
-	void getBlueToothFile(BluetoothSocket socket){
+	void getBlueToothFile(BluetoothSocket socket, SharedPreferences sharedPreferences){
 		try {
 			//接受文件长度
 			listenForMessages(transferSocket);
-			int file
+			Log.e("rtime","1");
+			//查看该文件被传到哪里
+			String thisFileName=returnMessage;
+			int fileLength=Integer.parseInt(returnMessage);
+			int thisFileTimes =sharedPreferences.getInt(returnMessage,0);
+			Log.e("rtime","2");
+			//告诉发到哪里
+			sendMessage(String.valueOf(thisFileTimes));
+			//开始接收
 			InputStream inputStream = socket.getInputStream();
-
 			File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/12345.jpg");
 			FileOutputStream fos = new FileOutputStream(file,true);
-			byte[] buffer = new byte[102400];
-			int len;
-
-			inputStream.read(buffer);
-			fos.write(buffer);
-
+			Log.e("rtime","3");
+			byte[] buffer = new byte[fileLength-thisFileTimes-1];
+			int thisRead=0;
+			Log.e("rtime","4");
+			//开始接受
+			while(fileLength-1-thisRead-thisFileTimes!=0){
+				fos.write(inputStream.read());
+				thisRead++;
+				SharedPreferences.Editor editor = sharedPreferences.edit();
+				editor.putInt( thisFileName , fileLength+thisRead);
+				editor.apply();
+			}
+			Log.e("rtime","5");
 			//flush把缓冲区中的数据强行输出
 			fos.flush();
-<<<<<<< HEAD
-=======
-			
-			
 			//关闭流
->>>>>>> origin/master
 			fos.close();
 			inputStream.close();
 
@@ -120,26 +130,27 @@ public class BluetoothManager {
 			listening=true;
 			//handler
 			Message message = new Message();
+			Log.e("wtime","1");
 			//创建输出流
 			outputStream = transferSocket.getOutputStream();
 			//获取文件
 			File f = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/12345.jpg");
 			Log.e("file",Environment.getExternalStorageDirectory().getAbsolutePath() );
 			//发送长度
-			sendMessage("SEND"+String.valueOf(f.length()));
+			sendMessage(String.valueOf(f.length()));
 			listenForMessages(transferSocket);
-			//等待消息
-			while(returnMessage.equalsIgnoreCase(""));
+			Log.e("wtime","2");
 			//接收到了消息开始分开发送文件
-			listening=false;
 			InputStream filesIn = new FileInputStream(f);
 			byte[] buffer = new byte[(int)f.length()];
 			filesIn.read(buffer);
-			if(returnMessage.equalsIgnoreCase("FIRST")) {
+			Log.e("wtime","3");
+			if(returnMessage.equalsIgnoreCase("0")) {
 				outputStream.write(buffer);
-			}else{
-				outputStream.write(buffer,Integer.valueOf(returnMessage),(int)f.length()-Integer.valueOf(returnMessage));
+			}else{//还是有问题
+				outputStream.write(buffer,Integer.parseInt(returnMessage),(int)f.length()-1-Integer.valueOf(returnMessage));
 			}
+			Log.e("wtime","4");
 			outputStream.flush();
 			outputStream.close();
 			filesIn.close();
@@ -167,8 +178,7 @@ public class BluetoothManager {
 		OutputStream outputStream;
 		try {
 			outputStream = transferSocket.getOutputStream();
-			byte[] bytes = (message+" ").getBytes();
-			bytes[bytes.length-1]=0;
+			byte[] bytes = (message).getBytes();
 			outputStream.write(bytes);
 		}catch (IOException e){
 			e.printStackTrace();
@@ -185,9 +195,7 @@ public class BluetoothManager {
 			int bytesRead = -1;
 
 			while (listening){
-
 				bytesRead = inputStream.read(buffer);
-
 				String result = "";
 				if(bytesRead != -1){
 
@@ -197,9 +205,8 @@ public class BluetoothManager {
 					}
 					result = result + new String(buffer,0,bytesRead);
 				}
+				listening=false;
 				returnMessage=result;
-
-
 			}
 			//socket.close();
 		}catch (IOException e){

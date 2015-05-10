@@ -40,6 +40,7 @@ public class MainActivity extends ActionBarActivity {
 			public void onClick(View v) {
 				//BluetoothDevice device = bluetoothAdapter.getRemoteDevice(beConnectedText.getText().toString());
 				BluetoothDevice device = bluetoothAdapter.getRemoteDevice("22:22:CC:06:08:C9");
+				//BluetoothDevice device = bluetoothAdapter.getRemoteDevice("18:DC:56:D3:26:D1");
 				bluetoothManager.connectDevice(device);
 
 			}
@@ -47,13 +48,13 @@ public class MainActivity extends ActionBarActivity {
 		beConnected.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
-				bluetoothManager.startServerSocket(bluetoothAdapter);
+				SharedPreferences sharedPreferences = getSharedPreferences("3", ActionBarActivity.MODE_PRIVATE);
+				bluetoothManager.startServerSocket(bluetoothAdapter, sharedPreferences);
 			}
 		});
 		send.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
-
 
 				myHandler = new Handler() {
 					public void handleMessage(Message msg) {
@@ -63,34 +64,18 @@ public class MainActivity extends ActionBarActivity {
 
 					}
 				};
-				bluetoothManager.SendBlueToothFile(0,myHandler);
-//				Thread acceptTread = new Thread(new Runnable() {
-//					@Override
-//					public void run() {
-//						try {
-//
-//
-//							//还要改哦
-//							SharedPreferences sharedPreferences= getSharedPreferences("1123455",ActionBarActivity.MODE_PRIVATE);
-//
-//							int fileTimes =sharedPreferences.getInt("fileTimes",0);
-//
-//							fileTimes=bluetoothManager.SendBlueToothFile(0,myHandler);
-//
-//							SharedPreferences.Editor editor = sharedPreferences.edit();
-//							editor.putInt("fileTimes", fileTimes);
-//							editor.apply();
-//
-//						}catch (Exception e){
-//							e.printStackTrace();
-//						}
-//					}
-//				});
-//
-//
-//				acceptTread.start();
 
-
+				Thread acceptTread = new Thread(new Runnable() {
+					@Override
+					public void run() {
+						try {
+							bluetoothManager.SendBlueToothFile(0,myHandler);
+						}catch (Exception e){
+							e.printStackTrace();
+						}
+					}
+				});
+				acceptTread.start();
 			}
 		});
 
