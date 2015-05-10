@@ -99,6 +99,12 @@ public class BluetoothManager {
 
 			//flush把缓冲区中的数据强行输出
 			fos.flush();
+<<<<<<< HEAD
+=======
+			
+			
+			//关闭流
+>>>>>>> origin/master
 			fos.close();
 			inputStream.close();
 
