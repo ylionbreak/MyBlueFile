@@ -90,8 +90,8 @@ public class BluetoothManager {
 			Log.e("rtime","1");
 			//查看该文件被传到哪里
 			String thisFileName=returnMessage;
-			int fileLength=Integer.parseInt(returnMessage);
-			int thisFileTimes =sharedPreferences.getInt(returnMessage,0);
+			int fileLength=Integer.parseInt(thisFileName);
+			int thisFileTimes =sharedPreferences.getInt(thisFileName,0);
 			Log.e("rtime","2");
 			//告诉发到哪里
 			sendMessage(String.valueOf(thisFileTimes));
@@ -101,36 +101,27 @@ public class BluetoothManager {
 			FileOutputStream fos = new FileOutputStream(file,true);
 			Log.e("rtime","3");
 			//byte[] buffer = new byte[fileLength-thisFileTimes-1];
-			byte[] buffer =new byte[1024];
+			byte[] buffer =new byte[10240];
 			int thisRead=0;
 			Log.e("rtime","4");
 			SharedPreferences.Editor editor = sharedPreferences.edit();
 			//开始接受
-
-			while(fileLength-1-thisRead-thisFileTimes>=0) {
-				//inputStream.read(buffer,thisRead,1);
-				fos.write(inputStream.read());
+			while(fileLength-1-thisRead-thisFileTimes>=0){
+				buffer[thisRead%10240]=(byte)inputStream.read();
 				thisRead++;
-				Log.e("wbyte", String.valueOf(thisRead));
-				editor.putInt(thisFileName, fileLength + thisRead);
-				editor.apply();
-			}
-			while(fileLength-1-thisRead-thisFileTimes!=0){
-				buffer[thisRead%1024]=(byte)inputStream.read();
-				thisRead++;
-				if(thisRead%1024==0){
+				if(thisRead%10240==0){
 					fos.write(buffer);
-					editor.putInt( thisFileName , fileLength+thisRead);
+					editor.putInt( thisFileName , thisFileTimes+thisRead);
 					editor.apply();
 					Log.e("readTime",String.valueOf(thisRead));
-				}else if(fileLength-thisRead==0){
-					fos.write(buffer,0,thisRead%1024);
-					editor.putInt( thisFileName , fileLength+thisRead);
+				}else if(fileLength-1-thisRead-thisFileTimes==0){
+					fos.write(buffer,0,thisRead%10240);
+					editor.putInt( thisFileName , thisFileTimes+thisRead);
 					editor.apply();
 				}
 
 			}
-			//fos.write(buffer);
+
 			Log.e("rtime","5");
 			//flush把缓冲区中的数据强行输出
 			fos.flush();
@@ -154,7 +145,7 @@ public class BluetoothManager {
 			//创建输出流
 			outputStream = transferSocket.getOutputStream();
 			//获取文件
-			File f = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/12345.jpg");
+			File f = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/123.jpg");
 			Log.e("file",Environment.getExternalStorageDirectory().getAbsolutePath() );
 			//发送长度
 			sendMessage(String.valueOf(f.length()));
@@ -165,9 +156,11 @@ public class BluetoothManager {
 			byte[] buffer = new byte[(int)f.length()];
 			filesIn.read(buffer);
 			Log.e("wtime","3");
+			Log.e("x",returnMessage);
 			if(returnMessage.equalsIgnoreCase("0")) {
 				outputStream.write(buffer);
 			}else{//还是有问题
+
 				outputStream.write(buffer,Integer.parseInt(returnMessage),(int)f.length()-1-Integer.valueOf(returnMessage));
 			}
 			Log.e("wtime","4");
