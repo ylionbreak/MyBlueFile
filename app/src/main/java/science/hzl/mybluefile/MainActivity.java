@@ -24,52 +24,61 @@ public class MainActivity extends ActionBarActivity {
 	BluetoothAdapter bluetoothAdapter=BluetoothAdapter.getDefaultAdapter();
 	TextView progress;
 	EditText beConnectedText;
+	EditText fileText;
 	Handler myHandler;
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		progress =(TextView)findViewById(R.id.progress);
-		Button beConnected = (Button)findViewById(R.id.be_connect_button);
 		Button connect = (Button)findViewById(R.id.connect);
 		Button send = (Button)findViewById(R.id.send);
 		beConnectedText = (EditText)findViewById(R.id.connect_text);
+		fileText = (EditText)findViewById(R.id.fileName);
+		SharedPreferences sharedPreferences = getSharedPreferences("3", ActionBarActivity.MODE_PRIVATE);
+		myHandler = new Handler() {
+			public void handleMessage(Message msg) {
+				if(msg.what==2000000000){
+					Toast toastTell;
+					toastTell=Toast.makeText(App.getContext(), "发送完成", Toast.LENGTH_SHORT);
+					toastTell.setGravity(Gravity.TOP, 0, 600);
+					toastTell.show();
+				}else{
+					progress.setText(String.valueOf(msg.what)+"%");
+					if(msg.what==100){
+						Toast toastTell;
+						toastTell=Toast.makeText(App.getContext(), "传输完成", Toast.LENGTH_SHORT);
+						toastTell.setGravity(Gravity.TOP, 0, 600);
+						toastTell.show();
+					}
+				}
 
+				super.handleMessage(msg);
+
+			}
+		};
+		bluetoothManager.startServerSocket(bluetoothAdapter, sharedPreferences,myHandler);
 		connect.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
 				//BluetoothDevice device = bluetoothAdapter.getRemoteDevice(beConnectedText.getText().toString());
-				BluetoothDevice device = bluetoothAdapter.getRemoteDevice("22:22:CC:06:08:C9");
+				//BluetoothDevice device = bluetoothAdapter.getRemoteDevice("22:22:CC:06:08:C9");
+				BluetoothDevice device = bluetoothAdapter.getRemoteDevice("10:FA:CE:84:4A:B7");
 				//BluetoothDevice device = bluetoothAdapter.getRemoteDevice("18:DC:56:D3:26:D1");
 				bluetoothManager.connectDevice(device);
 
 			}
 		});
-		beConnected.setOnClickListener(new View.OnClickListener() {
-			@Override
-			public void onClick(View v) {
-				SharedPreferences sharedPreferences = getSharedPreferences("3", ActionBarActivity.MODE_PRIVATE);
-				bluetoothManager.startServerSocket(bluetoothAdapter, sharedPreferences);
-			}
-		});
 		send.setOnClickListener(new View.OnClickListener() {
 			@Override
 			public void onClick(View v) {
-
-				myHandler = new Handler() {
-					public void handleMessage(Message msg) {
-
-						progress.setText(String.valueOf(msg.what)+"%");
-						super.handleMessage(msg);
-
-					}
-				};
-
 				Thread acceptTread = new Thread(new Runnable() {
 					@Override
 					public void run() {
 						try {
-							bluetoothManager.SendBlueToothFile(0,myHandler);
+							//bluetoothManager.SendBlueToothFile(0,myHandler,fileText.getText().toString());
+							bluetoothManager.SendBlueToothFile(0,myHandler,"123.jpg");
 						}catch (Exception e){
 							e.printStackTrace();
 						}
@@ -78,26 +87,21 @@ public class MainActivity extends ActionBarActivity {
 				acceptTread.start();
 			}
 		});
+	}
 
+	@Override
+	protected void onDestroy() {
+		super.onDestroy();
+		try {
+			bluetoothManager.getTransferSocket().close();
+		}catch (IOException e){
+			e.printStackTrace();
+		}
 
 	}
 
-//	@Override
-//	protected void onDestroy() {
-//		super.onDestroy();
-//		try {
-//			bluetoothManager.getTransferSocket().close();
-//		}catch (IOException e){
-//			e.printStackTrace();
-//		}
-//
-//	}
 }
 
 
 
 
-//Toast toastTell;
-//			toastTell=Toast.makeText(App.getContext(), "success", Toast.LENGTH_SHORT);
-//toastTell.setGravity(Gravity.TOP, 0, 600);
-//		toastTell.show();

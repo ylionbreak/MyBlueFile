@@ -4,14 +4,11 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
-import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Environment;
 import android.os.Message;
-import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 
-import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -20,24 +17,16 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.UUID;
 import android.os.Handler;
-import android.view.Gravity;
-import android.widget.Toast;
 
 /**
  * Created by YLion on 2015/5/6.
  */
 public class BluetoothManager {
-	private static final String SEND = "SEND:";
-	//private static final String
+
 	BluetoothSocket transferSocket;
 	StringBuilder incoming=new StringBuilder();
 	Boolean listening=false;
 	String returnMessage="";
-	String filename="12345.jpg";
-
-	BluetoothManager(){
-
-	}
 
 	void connectDevice(BluetoothDevice device){
 		try{
@@ -53,7 +42,7 @@ public class BluetoothManager {
 		}
 	}
 
-	public UUID startServerSocket  (BluetoothAdapter bluetoothAdapter, final SharedPreferences sharedPreferences){
+	public UUID startServerSocket  (BluetoothAdapter bluetoothAdapter, final SharedPreferences sharedPreferences,final Handler handler){
 		UUID uuid =UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
 		String name = "bluetoothServer";
 
@@ -70,7 +59,7 @@ public class BluetoothManager {
 						transferSocket = serverSocket;
 						//listenForMessages(transferSocket);
 						//listenForMessages(serverSocket,incoming);
-						getBlueToothFile(serverSocket, sharedPreferences);
+						getBlueToothFile(serverSocket, sharedPreferences, handler);
 					}catch (IOException e){
 						e.printStackTrace();
 					}
@@ -83,24 +72,30 @@ public class BluetoothManager {
 		return uuid;
 	}
 
-	void getBlueToothFile(BluetoothSocket socket, SharedPreferences sharedPreferences){
+	void getBlueToothFile(BluetoothSocket socket, SharedPreferences sharedPreferences, Handler handler){
 		try {
+			Message message = new Message();
+			//获取文件名字
+			String fileName;
+			listenForMessages(transferSocket);
+			fileName=returnMessage;
+			sendMessage("ok");
 			//接受文件长度
 			listenForMessages(transferSocket);
 			Log.e("rtime","1");
 			//查看该文件被传到哪里
-			String thisFileName=returnMessage;
-			int fileLength=Integer.parseInt(thisFileName);
-			int thisFileTimes =sharedPreferences.getInt(thisFileName,0);
+			String thisFilePosi =returnMessage;
+			int fileLength=Integer.parseInt(thisFilePosi);
+			int thisFileTimes =sharedPreferences.getInt(thisFilePosi,0);
 			Log.e("rtime","2");
 			//告诉发到哪里
 			sendMessage(String.valueOf(thisFileTimes));
 			//开始接收
 			InputStream inputStream = socket.getInputStream();
-			File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/12345.jpg");
+			File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/bluefile/"+fileName);
 			FileOutputStream fos = new FileOutputStream(file,true);
 			Log.e("rtime","3");
-			//byte[] buffer = new byte[fileLength-thisFileTimes-1];
+			//创建缓冲区
 			byte[] buffer =new byte[10240];
 			int thisRead=0;
 			Log.e("rtime","4");
@@ -111,17 +106,20 @@ public class BluetoothManager {
 				thisRead++;
 				if(thisRead%10240==0){
 					fos.write(buffer);
-					editor.putInt( thisFileName , thisFileTimes+thisRead);
+					editor.putInt(thisFilePosi, thisFileTimes+thisRead);
 					editor.apply();
+					message.what=(thisRead-thisFileTimes)/(fileLength-1);
+					handler.sendMessage(message);
 					Log.e("readTime",String.valueOf(thisRead));
 				}else if(fileLength-1-thisRead-thisFileTimes==0){
 					fos.write(buffer,0,thisRead%10240);
-					editor.putInt( thisFileName , thisFileTimes+thisRead);
+					editor.putInt(thisFilePosi, thisFileTimes+thisRead);
 					editor.apply();
+					message.what=(thisRead-thisFileTimes)/(fileLength-1);
+					handler.sendMessage(message);
 				}
 
 			}
-
 			Log.e("rtime","5");
 			//flush把缓冲区中的数据强行输出
 			fos.flush();
@@ -135,7 +133,7 @@ public class BluetoothManager {
 
 	}
 
-	int SendBlueToothFile(int time,Handler handler){
+	int SendBlueToothFile(int time,Handler handler,String filename){
 		OutputStream outputStream;
 		try {
 			listening=true;
@@ -145,8 +143,12 @@ public class BluetoothManager {
 			//创建输出流
 			outputStream = transferSocket.getOutputStream();
 			//获取文件
-			File f = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/123.jpg");
+			File f = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/"+filename);
+			//File f = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/bluefile/"+filename);
 			Log.e("file",Environment.getExternalStorageDirectory().getAbsolutePath() );
+			//发送文件名字
+			sendMessage(filename);
+			listenForMessages(transferSocket);
 			//发送长度
 			sendMessage(String.valueOf(f.length()));
 			listenForMessages(transferSocket);
@@ -159,11 +161,14 @@ public class BluetoothManager {
 			Log.e("x",returnMessage);
 			if(returnMessage.equalsIgnoreCase("0")) {
 				outputStream.write(buffer);
-			}else{//还是有问题
+			}else{
 
 				outputStream.write(buffer,Integer.parseInt(returnMessage),(int)f.length()-1-Integer.valueOf(returnMessage));
 			}
+			message.what=2000000000;
+			handler.sendMessage(message);
 			Log.e("wtime","4");
+
 			outputStream.flush();
 			//outputStream.close();
 			//filesIn.close();
@@ -171,20 +176,6 @@ public class BluetoothManager {
 			e.printStackTrace();
 		}
 		return time;
-	}
-
-	private void sendMessage(BluetoothSocket socket,String message){
-		OutputStream outputStream;
-		try {
-			outputStream = socket.getOutputStream();
-
-			byte[] bytes = (message+" ").getBytes();
-			bytes[bytes.length-1]=0;
-
-			outputStream.write(bytes);
-		}catch (IOException e){
-			e.printStackTrace();
-		}
 	}
 
 	private void sendMessage(String message){
@@ -252,8 +243,6 @@ public class BluetoothManager {
 					incoming.append(result);
 				}
 				returnMessage=result;
-
-
 			}
 			//socket.close();
 		}catch (IOException e){
