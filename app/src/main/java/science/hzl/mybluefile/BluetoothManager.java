@@ -103,14 +103,17 @@ public class BluetoothManager {
 			byte[] buffer = new byte[fileLength-thisFileTimes-1];
 			int thisRead=0;
 			Log.e("rtime","4");
+			SharedPreferences.Editor editor = sharedPreferences.edit();
 			//开始接受
-			while(fileLength-1-thisRead-thisFileTimes!=0){
+			while(fileLength-1-thisRead-thisFileTimes>=0){
+				//inputStream.read(buffer,thisRead,1);
 				fos.write(inputStream.read());
 				thisRead++;
-				SharedPreferences.Editor editor = sharedPreferences.edit();
+				Log.e("wbyte",String.valueOf(thisRead));
 				editor.putInt( thisFileName , fileLength+thisRead);
 				editor.apply();
 			}
+			//fos.write(buffer);
 			Log.e("rtime","5");
 			//flush把缓冲区中的数据强行输出
 			fos.flush();
@@ -152,8 +155,8 @@ public class BluetoothManager {
 			}
 			Log.e("wtime","4");
 			outputStream.flush();
-			outputStream.close();
-			filesIn.close();
+			//outputStream.close();
+			//filesIn.close();
 		}catch (IOException e){
 			e.printStackTrace();
 		}
