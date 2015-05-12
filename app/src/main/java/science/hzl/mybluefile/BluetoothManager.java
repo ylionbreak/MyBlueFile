@@ -100,16 +100,26 @@ public class BluetoothManager {
 			File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/12345.jpg");
 			FileOutputStream fos = new FileOutputStream(file,true);
 			Log.e("rtime","3");
-			byte[] buffer = new byte[fileLength-thisFileTimes-1];
+			//byte[] buffer = new byte[fileLength-thisFileTimes-1];
+			byte[] buffer =new byte[1024];
 			int thisRead=0;
 			Log.e("rtime","4");
 			//开始接受
 			while(fileLength-1-thisRead-thisFileTimes!=0){
-				fos.write(inputStream.read());
+				buffer[thisRead%1024]=(byte)inputStream.read();
 				thisRead++;
-				SharedPreferences.Editor editor = sharedPreferences.edit();
-				editor.putInt( thisFileName , fileLength+thisRead);
-				editor.apply();
+				if(thisRead%1024==0){
+					fos.write(buffer);
+					SharedPreferences.Editor editor = sharedPreferences.edit();
+					editor.putInt( thisFileName , fileLength+thisRead);
+					editor.apply();
+					Log.e("readTime",String.valueOf(thisRead));
+				}else if(fileLength-thisRead==0){
+					fos.write(buffer,0,thisRead%1024);
+					SharedPreferences.Editor editor = sharedPreferences.edit();
+					editor.putInt( thisFileName , fileLength+thisRead);
+					editor.apply();
+				}
 			}
 			Log.e("rtime","5");
 			//flush把缓冲区中的数据强行输出
