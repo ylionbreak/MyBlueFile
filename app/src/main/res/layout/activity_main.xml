@@ -129,6 +129,12 @@
                 android:text="       "/>
         </LinearLayout>
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="备注：'\n' 断开连接后要关闭app再开再发送才能断点续传 '\n' 蓝牙需要手动开启 '\n' 如果app失灵重启app或者蓝牙即可"
+            android:id="@+id/textView6"/>
+
     </LinearLayout>
 
 </RelativeLayout>
