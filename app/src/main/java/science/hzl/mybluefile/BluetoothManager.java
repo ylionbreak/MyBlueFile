@@ -17,7 +17,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.UUID;
 import android.os.Handler;
+import android.view.Gravity;
 import android.widget.TextView;
+import android.widget.Toast;
 
 /**
  * Created by YLion on 2015/5/6.
@@ -33,9 +35,14 @@ public class BluetoothManager {
 
 			if (msg.what==0){
 				MainActivity.progress.setText("");
-			}
-			else if(msg.what==2000000000){
+			}else if(msg.what==2000000000){
 				MainActivity.progress.setText("发送成功");
+
+			}else if(msg.what==1999999999){
+				MainActivity.progress.setText("连接成功");
+
+			}else if(msg.what==1999999998){
+				MainActivity.progress.setText("接受完成！");
 
 			}else{
 				MainActivity.progress.setText(String.valueOf(msg.what)+"%");
@@ -55,6 +62,11 @@ public class BluetoothManager {
 			bluetoothSocket.connect();
 			transferSocket=bluetoothSocket;
 			Log.e("x", String.valueOf(bluetoothSocket.isConnected()));
+			if(bluetoothSocket.isConnected()){
+				Message message = new Message();
+				message.what=1999999999;
+				handler.sendMessage(message);
+			}
 		}catch (IOException e){
 			e.printStackTrace();
 		}catch(Exception e){
@@ -140,7 +152,7 @@ public class BluetoothManager {
 					editor.putInt(thisFilePosi, 0);
 					editor.apply();
 					Message message = new Message();
-					message.what=(thisRead+thisFileTimes)*100/(fileLength);
+					message.what=1999999998;
 					handler.sendMessage(message);
 				}
 
@@ -163,7 +175,7 @@ public class BluetoothManager {
 		try {
 			listening=true;
 			//handler
-			Message message = new Message();
+
 			Log.e("wtime","1");
 			//创建输出流
 			outputStream = transferSocket.getOutputStream();
@@ -190,6 +202,7 @@ public class BluetoothManager {
 			}else{
 				outputStream.write(buffer,Integer.parseInt(returnMessage),(int)f.length()-1-Integer.valueOf(returnMessage));
 			}
+			Message message = new Message();
 			message.what=2000000000;
 			handler.sendMessage(message);
 			Log.e("wtime", "5");
